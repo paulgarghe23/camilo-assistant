@@ -1,22 +1,134 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Airia Embed</title>
+    <title>Asistente UCJC</title>
+    <meta name="description" content="Asistente virtual UCJC (Airia)" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+      :root{
+        --ucjc-blue:#003B73;
+        --ucjc-blue-2:#0B4F9E;
+        --ucjc-gray:#5C6770;
+        --bg:#F6F8FB;
+        --card:#FFFFFF;
+        --border:#E6EBF2;
+      }
+      *{box-sizing:border-box}
+      body{
+        margin:0;
+        font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+        background:radial-gradient(1200px 600px at 20% -10%, rgba(11,79,158,.18), transparent 55%),
+                   radial-gradient(1000px 600px at 110% 20%, rgba(0,59,115,.14), transparent 55%),
+                   var(--bg);
+        color:#0F172A;
+      }
+      header{
+        position:sticky; top:0; z-index:5;
+        backdrop-filter:saturate(180%) blur(10px);
+        background:rgba(246,248,251,.75);
+        border-bottom:1px solid var(--border);
+      }
+      .wrap{max-width:980px; margin:0 auto; padding:18px 18px;}
+      .brand{
+        display:flex; align-items:center; gap:12px;
+      }
+      .mark{
+        width:42px; height:42px; border-radius:12px;
+        background:linear-gradient(135deg, var(--ucjc-blue), var(--ucjc-blue-2));
+        box-shadow:0 10px 24px rgba(0,59,115,.18);
+        display:grid; place-items:center;
+        color:white; font-weight:800; letter-spacing:.5px;
+      }
+      .title{
+        display:flex; flex-direction:column; line-height:1.1;
+      }
+      .title strong{font-size:14px; color:var(--ucjc-blue)}
+      .title span{font-size:12px; color:var(--ucjc-gray)}
+      main .hero{
+        padding:44px 18px 10px;
+      }
+      .card{
+        max-width:980px; margin:0 auto;
+        background:rgba(255,255,255,.9);
+        border:1px solid var(--border);
+        border-radius:18px;
+        padding:22px;
+        box-shadow:0 18px 40px rgba(15,23,42,.06);
+      }
+      h1{
+        margin:0 0 10px;
+        font-size:28px;
+        letter-spacing:-.02em;
+      }
+      p{margin:0; color:#334155}
+      .badges{display:flex; gap:8px; flex-wrap:wrap; margin-top:16px}
+      .badge{
+        font-size:12px;
+        padding:8px 10px;
+        border-radius:999px;
+        border:1px solid var(--border);
+        background:#fff;
+        color:#0F172A;
+      }
+      .badge b{color:var(--ucjc-blue)}
+      footer{
+        padding:18px; text-align:center; color:var(--ucjc-gray);
+        font-size:12px;
+      }
+    </style>
   </head>
+
   <body>
-    <div id="root"></div>
+    <header>
+      <div class="wrap brand">
+        <div class="mark">UC</div>
+        <div class="title">
+          <strong>Universidad Camilo José Cela</strong>
+          <span>Asistente virtual · Atención al estudiante</span>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="card">
+          <h1>Hola 👋</h1>
+          <p>
+            Este es el asistente de la UCJC. Puedes preguntarme sobre admisiones, secretaría, horarios,
+            trámites y dudas generales.
+          </p>
+
+          <div class="badges">
+            <div class="badge"><b>24/7</b> disponible</div>
+            <div class="badge">Respuestas <b>rápidas</b></div>
+            <div class="badge">Soporte <b>estudiantes</b></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      © UCJC · Asistente impulsado por Airia
+    </footer>
+
     <script type="module">
-        import AiriaChat from "https://eu1.embed-api.airia.ai/get-chat-embed.js"
-        AiriaChat.init({pipelineId: "4ac209f1-7f8f-4251-b325-bb6c5f206750",
-                        apiKey: "ak-MjMzMTc5NjMwM3wxNzcwMTE5MDc0MzcwfHRpLVUwVkxJRVZrZFdOaGRHbHZiaUJIY205MWNDMD18MXwxODM1MDA0ODAz",
-                        apiUrl: "https://eu1.embed-api.airia.ai",
-                        greeting: "Hello! How can I assist you today?",
-                        imagePath: "https://yoursite.com/assets/chatbot-icon.png",
-                        imageSize: "small",
-                        imageBgColor: "#FFFFFF",
-                        autoOpen: true})
+      import AiriaChat from "https://eu1.embed-api.airia.ai/get-chat-embed.js";
+
+      AiriaChat.init({
+        pipelineId: "4ac209f1-7f8f-4251-b325-bb6c5f206750",
+        apiKey: "ak-MjMzMTc5NjMwM3wxNzcwMTE5MDc0MzcwfHRpLVUwVkxJRVZrZFdOaGRHbHZiaUJIY205MWNDMD18MXwxODM1MDA0ODAz",
+        apiUrl: "https://eu1.embed-api.airia.ai",
+        greeting: "¡Hola! Soy el asistente de la UCJC. ¿En qué puedo ayudarte?",
+        imagePath: "",                 // pon aquí la URL del icono si quieres
+        imageSize: "small",
+        imageBgColor: "#FFFFFF",
+        autoOpen: false                // yo lo dejaría en false para no molestar
+      });
     </script>
   </body>
 </html>
