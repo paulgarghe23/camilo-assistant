@@ -1,22 +1,43 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Airia Embed</title>
+    <style>
+      html, body { height: 100%; margin: 0; }
+      #root { height: 100vh; }
+    </style>
   </head>
   <body>
     <div id="root"></div>
+
     <script type="module">
-        import AiriaChat from "https://eu1.embed-api.airia.ai/get-chat-embed.js"
-        AiriaChat.init({pipelineId: "4ac209f1-7f8f-4251-b325-bb6c5f206750",
-                        apiKey: "ak-MjMzMTc5NjMwM3wxNzcwMTE5MDc0MzcwfHRpLVUwVkxJRVZrZFdOaGRHbHZiaUJIY205MWNDMD18MXwxODM1MDA0ODAz",
-                        apiUrl: "https://eu1.embed-api.airia.ai",
-                        greeting: "Hello! How can I assist you today?",
-                        imagePath: "https://yoursite.com/assets/chatbot-icon.png",
-                        imageSize: "small",
-                        imageBgColor: "#FFFFFF",
-                        autoOpen: true})
+      // Evita doble init (causa #1 de "desaparece el historial")
+      if (window.__AIRIA_CHAT_INITIALIZED__) {
+        console.warn("AiriaChat ya estaba inicializado. Evitando doble init.");
+      } else {
+        window.__AIRIA_CHAT_INITIALIZED__ = true;
+
+        window.addEventListener("DOMContentLoaded", async () => {
+          const AiriaChat = (await import("https://eu1.embed-api.airia.ai/get-chat-embed.js")).default;
+
+          console.log("AiriaChat.init ejecutándose UNA vez");
+
+          AiriaChat.init({
+            container: "#root",
+            pipelineId: "4ac209f1-7f8f-4251-b325-bb6c5f206750",
+            apiKey: "ak-MjMzMTc5NjMwM3wxNzcwMTE5MDc0MzcwfHRpLVUwVkxJRVZrZFdOaGRHbHZiaUJIY205MWNDMD18MXwxODM1MDA0ODAz",
+            apiUrl: "https://eu1.embed-api.airia.ai",
+            greeting: "Hello! How can I assist you today?",
+            // OJO: si la imagen 404, quítala para descartar problemas raros de UI:
+            // imagePath: "https://yoursite.com/assets/chatbot-icon.png",
+            imageSize: "small",
+            imageBgColor: "#FFFFFF",
+            autoOpen: true
+          });
+        });
+      }
     </script>
   </body>
 </html>
