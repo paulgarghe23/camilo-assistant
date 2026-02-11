@@ -1,22 +1,206 @@
 <!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Airia Embed</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module">
-        import AiriaChat from "https://eu1.embed-api.airia.ai/get-chat-embed.js"
-        AiriaChat.init({pipelineId: "4ac209f1-7f8f-4251-b325-bb6c5f206750",
-                        apiKey: "ak-MjgzNzA2MjcwM3wxNzcwODAxODUwNTE3fHRpLVUwVkxJRVZrZFdOaGRHbHZiaUJIY205MWNDMD18MXwxMjExNjMxNjc0",
-                        apiUrl: "https://eu1.embed-api.airia.ai",
-                        greeting: "Hello! How can I assist you today?",
-                        imagePath: "https://yoursite.com/assets/chatbot-icon.png",
-                        imageSize: "small",
-                        imageBgColor: "#FFFFFF",
-                        autoOpen: true})
-    </script>
-  </body>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Airia Chat (sin embed)</title>
+  <style>
+    body { font-family: system-ui, Arial; margin: 0; background:#f5f5f5; }
+    .wrap { max-width: 720px; margin: 24px auto; padding: 0 12px; }
+    #chat { background:#fff; border-radius: 12px; padding: 14px; height: 70vh; overflow:auto; box-shadow: 0 6px 24px rgba(0,0,0,.08); }
+    .msg { padding: 10px 12px; border-radius: 14px; margin: 8px 0; max-width: 85%; white-space: pre-wrap; word-break: break-word; }
+    .user { background:#e3f2fd; margin-left:auto; }
+    .assistant { background:#f1f1f1; margin-right:auto; }
+    .bar { display:flex; gap:10px; margin-top: 10px; }
+    input { flex:1; padding: 12px; border-radius: 10px; border: 1px solid #ccc; }
+    button { padding: 12px 16px; border-radius: 10px; border: 0; background:#1976d2; color:#fff; cursor:pointer; }
+    button:disabled { opacity:.55; cursor:not-allowed; }
+    .hint { font-size:12px; color:#666; margin-top:8px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div id="chat"></div>
+
+    <div class="bar">
+      <input id="text" placeholder="Escribe..." />
+      <button id="send">Enviar</button>
+    </div>
+    <div class="hint" id="hint"></div>
+  </div>
+
+<script>
+  // === TUS DATOS (del snippet de Airia) ===
+  const PIPELINE_ID = "4ac209f1-7f8f-4251-b325-bb6c5f206750";
+  const API_KEY = "ak-MjgzNzA2MjcwM3wxNzcwODAxODUwNTE3fHRpLVUwVkxJRVZrZFdOaGRHbHZiaUJIY205MWNDMD18MXwxMjExNjMxNjc0";
+  const ENDPOINT = `https://eu1.embed-api.airia.ai/PipelineExecution/${PIPELINE_ID}`;
+
+  // ConversationId estable (evita sesiones nuevas)
+  const conversationId =
+    localStorage.getItem("airia_conversation_id") ||
+    (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
+  localStorage.setItem("airia_conversation_id", conversationId);
+
+  const chatEl = document.getElementById("chat");
+  const inputEl = document.getElementById("text");
+  const sendBtn = document.getElementById("send");
+  const hintEl = document.getElementById("hint");
+
+  let messages = [
+    { role: "assistant", message: "Hola, soy Camilo Assistant UCJC. ¿En qué puedo ayudarte?" }
+  ];
+  let loading = false;
+
+  function render() {
+    chatEl.innerHTML = "";
+    for (const m of messages) {
+      const div = document.createElement("div");
+      div.className = `msg ${m.role}`;
+      // Render básico (texto). Si quieres markdown, se puede añadir después.
+      div.textContent = m.message || "";
+      chatEl.appendChild(div);
+    }
+    chatEl.scrollTop = chatEl.scrollHeight;
+  }
+
+  function setLoading(v) {
+    loading = v;
+    sendBtn.disabled = v;
+    inputEl.disabled = v;
+    hintEl.textContent = v ? "Respondiendo…" : "";
+  }
+
+  async function readEventStreamToText(res, onChunk) {
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let buf = "";
+    let full = "";
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+
+      buf += decoder.decode(value, { stream: true });
+
+      // SSE suele venir por líneas "data: {...}"
+      const lines = buf.split("\n");
+      buf = lines.pop() || "";
+
+      for (const line of lines) {
+        const t = line.trim();
+        if (!t.startsWith("data:")) continue;
+        const payload = t.slice(5).trim();
+
+        // algunos servidores mandan "data: [DONE]"
+        if (payload === "[DONE]") continue;
+
+        try {
+          const obj = JSON.parse(payload);
+
+          // Caso típico: el embed concatena StepResult de AgentOutputMessage
+          const chunk =
+            obj?.StepResult ||
+            obj?.stepResult ||
+            obj?.output ||
+            obj?.message ||
+            "";
+
+          if (typeof chunk === "string" && chunk.length) {
+            full += chunk;
+            onChunk(full);
+          }
+        } catch {
+          // si no es JSON, lo ignoramos
+        }
+      }
+    }
+
+    return full;
+  }
+
+  async function sendMessage() {
+    if (loading) return;
+
+    const text = inputEl.value.trim();
+    if (!text) return;
+
+    messages.push({ role: "user", message: text });
+    render();
+    inputEl.value = "";
+    setLoading(true);
+
+    // placeholder del assistant (se va actualizando si hay stream)
+    const assistantIndex = messages.length;
+    messages.push({ role: "assistant", message: "" });
+    render();
+
+    try {
+      const body = {
+        // IMPORTANTE: esto es lo que viste en Network (Payload)
+        userInput: text,
+        inMemoryMessages: messages
+          .filter(m => m.role === "user" || m.role === "assistant")
+          .map(m => ({ role: m.role, message: m.message })),
+        conversationId,
+        // intentamos desactivar asyncOutput; si el backend lo ignora, igual soportamos SSE
+        asyncOutput: false
+      };
+
+      const res = await fetch(ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": API_KEY
+        },
+        body: JSON.stringify(body)
+      });
+
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(`HTTP ${res.status}: ${txt.slice(0, 200)}`);
+      }
+
+      const ct = (res.headers.get("content-type") || "").toLowerCase();
+
+      if (ct.includes("text/event-stream")) {
+        // Stream: vamos pintando mientras llega
+        await readEventStreamToText(res, (full) => {
+          messages[assistantIndex].message = full || "";
+          render();
+        });
+      } else {
+        // JSON normal
+        const data = await res.json();
+
+        // Intentos razonables de extraer texto
+        const reply =
+          data?.output ||
+          data?.message ||
+          data?.result ||
+          data?.Value ||
+          JSON.stringify(data);
+
+        messages[assistantIndex].message = typeof reply === "string" ? reply : JSON.stringify(reply);
+        render();
+      }
+    } catch (e) {
+      messages[assistantIndex].message = "Error: no se pudo obtener respuesta.";
+      render();
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  sendBtn.addEventListener("click", sendMessage);
+  inputEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  render();
+</script>
+</body>
 </html>
