@@ -1,98 +1,22 @@
 <!doctype html>
-<html lang="es">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Airia Test</title>
-<style>
-body { font-family: Arial; background:#f5f5f5; margin:0; }
-#chat { max-width:600px; margin:40px auto; background:white; padding:20px; border-radius:12px; height:70vh; overflow-y:auto; display:flex; flex-direction:column; gap:10px; }
-.msg { padding:10px 14px; border-radius:16px; max-width:80%; white-space:pre-wrap; }
-.user { background:#e3f2fd; align-self:flex-end; }
-.assistant { background:#f1f1f1; align-self:flex-start; }
-#inputBox { max-width:600px; margin:10px auto; display:flex; gap:10px; }
-input { flex:1; padding:10px; border-radius:8px; border:1px solid #ccc; }
-button { padding:10px 16px; border-radius:8px; border:none; background:#1976d2; color:white; cursor:pointer; }
-button:disabled { opacity:0.5; }
-</style>
-</head>
-<body>
-
-<div id="chat"></div>
-
-<div id="inputBox">
-  <input id="text" placeholder="Escribe..." />
-  <button id="send">Enviar</button>
-</div>
-
-<script>
-const API_KEY = "ak-MjgzNzA2MjcwM3wxNzcwODAxODUwNTE3fHRpLVUwVkxJRVZrZFdOaGRHbHZiaUJIY205MWNDMD18MXwxMjExNjMxNjc0";
-const PIPELINE_ID = "4ac209f1-7f8f-4251-b325-bb6c5f206750";
-const API_URL = "https://eu1.embed-api.airia.ai";
-
-let messages = [];
-let loading = false;
-
-const chat = document.getElementById("chat");
-const input = document.getElementById("text");
-const btn = document.getElementById("send");
-
-function render() {
-  chat.innerHTML = "";
-  messages.forEach(m => {
-    const div = document.createElement("div");
-    div.className = "msg " + m.role;
-    div.textContent = m.message;
-    chat.appendChild(div);
-  });
-  chat.scrollTop = chat.scrollHeight;
-}
-
-async function sendMessage() {
-  if (loading) return;
-
-  const text = input.value.trim();
-  if (!text) return;
-
-  messages.push({ role:"user", message:text });
-  render();
-  input.value = "";
-
-  loading = true;
-  btn.disabled = true;
-
-  const res = await fetch(API_URL + "/chat", {
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json",
-      "x-api-key": API_KEY
-    },
-    body: JSON.stringify({
-      pipelineId: PIPELINE_ID,
-      userInput: text,
-      inMemoryMessages: messages
-    })
-  });
-
-  const data = await res.json();
-
-  const reply =
-    data?.output ||
-    data?.message ||
-    JSON.stringify(data);
-
-  messages.push({ role:"assistant", message: reply });
-  render();
-
-  loading = false;
-  btn.disabled = false;
-}
-
-btn.onclick = sendMessage;
-input.addEventListener("keypress", e => {
-  if (e.key === "Enter") sendMessage();
-});
-</script>
-
-</body>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Airia Embed</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module">
+        import AiriaChat from "https://eu1.embed-api.airia.ai/get-chat-embed.js"
+        AiriaChat.init({pipelineId: "4ac209f1-7f8f-4251-b325-bb6c5f206750",
+                        apiKey: "ak-MjgzNzA2MjcwM3wxNzcwODAxODUwNTE3fHRpLVUwVkxJRVZrZFdOaGRHbHZiaUJIY205MWNDMD18MXwxMjExNjMxNjc0",
+                        apiUrl: "https://eu1.embed-api.airia.ai",
+                        greeting: "Hello! How can I assist you today?",
+                        imagePath: "https://yoursite.com/assets/chatbot-icon.png",
+                        imageSize: "small",
+                        imageBgColor: "#FFFFFF",
+                        autoOpen: true})
+    </script>
+  </body>
 </html>
