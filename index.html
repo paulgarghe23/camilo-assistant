@@ -1,157 +1,22 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-    <title>Camilo Assistant (Airia vía Worker)</title>
-    <style>
-      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin:0; background:#f6f7fb; }
-      .wrap { max-width: 900px; margin: 24px auto; padding: 0 16px; }
-      .card { background:#fff; border-radius:14px; box-shadow: 0 6px 20px rgba(0,0,0,.08); overflow:hidden; }
-      .hdr { padding:14px 16px; background:#6b4e00; color:#fff; font-weight:700; display:flex; justify-content:space-between; align-items:center; gap:12px; }
-      .hdr small { font-weight:500; opacity:.9; }
-      .chat { padding:16px; height:55vh; overflow:auto; display:flex; flex-direction:column; gap:10px; }
-      .msg { max-width: 82%; padding:10px 12px; border-radius:12px; line-height:1.35; white-space:pre-wrap; }
-      .user { align-self:flex-end; background:#1f2937; color:#fff; border-top-right-radius:4px; }
-      .bot  { align-self:flex-start; background:#f1f5f9; color:#111827; border-top-left-radius:4px; }
-      .inp { display:flex; gap:10px; padding:12px; border-top:1px solid #e5e7eb; background:#fff; }
-      input { flex:1; padding:12px; border:1px solid #d1d5db; border-radius:12px; outline:none; }
-      button { padding:12px 14px; border:0; border-radius:12px; background:#6b4e00; color:#fff; font-weight:700; cursor:pointer; }
-      button:disabled { opacity:.55; cursor:not-allowed; }
-      details { border-top:1px solid #e5e7eb; background:#fff; }
-      summary { padding:10px 16px; cursor:pointer; user-select:none; color:#374151; }
-      pre { margin:0; padding:12px 16px; overflow:auto; background:#0b1020; color:#e5e7eb; font-size:12px; }
-      code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Airia Embed</title>
   </head>
   <body>
-    <div class="wrap">
-      <div class="card">
-        <div class="hdr">
-          <span>Camilo Assistant (API vía Worker)</span>
-          <small id="status">Listo</small>
-        </div>
-
-        <div id="chat" class="chat"></div>
-
-        <div class="inp">
-          <input id="text" placeholder="Escribe tu pregunta..." />
-          <button id="send">Enviar</button>
-        </div>
-
-        <details open>
-          <summary>Debug (última respuesta / error)</summary>
-          <pre id="debug"><code>(vacío)</code></pre>
-        </details>
-      </div>
-    </div>
-
-    <script>
-      // === SOLO ESTA URL === (tu Worker)
-      const API_URL = "https://airia-proxy.paulgarghe23.workers.dev";
-
-      const chatEl  = document.getElementById("chat");
-      const textEl  = document.getElementById("text");
-      const sendEl  = document.getElementById("send");
-      const debugEl = document.getElementById("debug");
-      const statusEl= document.getElementById("status");
-
-      function setDebug(objOrText) {
-        const text = (typeof objOrText === "string") ? objOrText : JSON.stringify(objOrText, null, 2);
-        debugEl.textContent = text;
-      }
-
-      function addMsg(text, who) {
-        const div = document.createElement("div");
-        div.className = `msg ${who}`;
-        div.textContent = text;
-        chatEl.appendChild(div);
-        chatEl.scrollTop = chatEl.scrollHeight;
-      }
-
-      function extractAnswer(data) {
-        // Intenta varias rutas típicas
-        return (
-          data?.Result?.Value ??
-          data?.result?.value ??
-          data?.result ??
-          data?.Value ??
-          data?.value ??
-          data?.output ??
-          data?.Output ??
-          data?.message ??
-          null
-        );
-      }
-
-      async function sendMessage() {
-        const userInput = (textEl.value || "").trim();
-        if (!userInput) return;
-
-        addMsg(userInput, "user");
-        textEl.value = "";
-        sendEl.disabled = true;
-        statusEl.textContent = "Enviando...";
-        setDebug("(enviando...)");
-
-        try {
-          // Payload mínimo que muestra la doc de Airia
-          const payload = { userInput, asyncOutput: false };
-
-          const res = await fetch(API_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          });
-
-          const ct = (res.headers.get("content-type") || "").toLowerCase();
-          const rawText = await res.text();
-
-          // Intentar parsear JSON si parece JSON
-          let data = null;
-          if (ct.includes("application/json") || rawText.trim().startsWith("{") || rawText.trim().startsWith("[")) {
-            try { data = JSON.parse(rawText); } catch { data = rawText; }
-          } else {
-            data = rawText;
-          }
-
-          setDebug({
-            httpStatus: res.status,
-            ok: res.ok,
-            contentType: ct,
-            requestPayload: payload,
-            response: data
-          });
-
-          if (!res.ok) {
-            addMsg(`Error llamando a la API (HTTP ${res.status}). Mira "Debug" para ver el reporte completo.`, "bot");
-            return;
-          }
-
-          const answer = extractAnswer(data);
-          if (typeof answer === "string" && answer.trim()) {
-            addMsg(answer, "bot");
-          } else {
-            addMsg("No pude encontrar el texto de respuesta. Mira 'Debug' (response) para ver dónde viene.", "bot");
-          }
-
-        } catch (e) {
-          setDebug(String(e?.message || e));
-          addMsg("Error llamando a la API. Mira 'Debug' para el detalle.", "bot");
-        } finally {
-          sendEl.disabled = false;
-          statusEl.textContent = "Listo";
-          textEl.focus();
-        }
-      }
-
-      // Mensaje inicial
-      addMsg("¡Hola! Soy Camilo Assistant UCJC. ¿En qué te puedo ayudar?", "bot");
-
-      sendEl.addEventListener("click", sendMessage);
-      textEl.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") sendMessage();
-      });
+    <div id="root"></div>
+    <script type="module">
+        import AiriaChat from "https://eu1.embed-api.airia.ai/get-chat-embed.js"
+        AiriaChat.init({pipelineId: "4ac209f1-7f8f-4251-b325-bb6c5f206750",
+                        apiKey: "ak-Mjg2MjAwODQ2NHwxNzcwOTExNTM1MTg1fHRpLVUwVkxJRVZrZFdOaGRHbHZiaUJIY205MWNDMD18MXwyMzEzMDAwMTAw",
+                        apiUrl: "https://eu1.embed-api.airia.ai",
+                        greeting: "Hello! How can I assist you today?",
+                        imagePath: "https://yoursite.com/assets/chatbot-icon.png",
+                        imageSize: "small",
+                        imageBgColor: "#FFFFFF",
+                        autoOpen: true})
     </script>
   </body>
 </html>
