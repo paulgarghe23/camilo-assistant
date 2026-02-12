@@ -1,22 +1,139 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Airia Embed</title>
+    <title>Chat UCJC (Airia API)</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin: 0; background: #f6f7fb; }
+      .wrap { max-width: 820px; margin: 24px auto; padding: 0 16px; }
+      .card { background: #fff; border-radius: 14px; box-shadow: 0 6px 20px rgba(0,0,0,.08); overflow: hidden; }
+      .hdr { padding: 14px 16px; background: #6b4e00; color: #fff; font-weight: 700; display:flex; gap:10px; align-items:center; }
+      .hdr small { font-weight: 500; opacity: .9; }
+      .chat { padding: 16px; height: 60vh; overflow: auto; display: flex; flex-direction: column; gap: 10px; }
+      .msg { max-width: 82%; padding: 10px 12px; border-radius: 12px; line-height: 1.35; white-space: pre-wrap; }
+      .user { align-self: flex-end; background: #1f2937; color: #fff; border-top-right-radius: 4px; }
+      .bot  { align-self: flex-start; background: #f1f5f9; color: #111827; border-top-left-radius: 4px; }
+      .meta { font-size: 12px; opacity: .7; margin-top: 6px; }
+      .inp { display:flex; gap:10px; padding: 12px; border-top: 1px solid #e5e7eb; background:#fff; }
+      input { flex:1; padding: 12px; border: 1px solid #d1d5db; border-radius: 12px; outline: none; }
+      button { padding: 12px 14px; border: 0; border-radius: 12px; background: #6b4e00; color:#fff; font-weight: 700; cursor:pointer; }
+      button:disabled { opacity:.55; cursor:not-allowed; }
+      .hint { padding: 12px 16px; font-size: 13px; color:#374151; }
+      code { background:#f3f4f6; padding: 2px 6px; border-radius: 8px; }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module">
-        import AiriaChat from "https://eu1.embed-api.airia.ai/get-chat-embed.js"
-        AiriaChat.init({pipelineId: "4ac209f1-7f8f-4251-b325-bb6c5f206750",
-                        apiKey: "ak-MjgzNzA2MjcwM3wxNzcwODAxODUwNTE3fHRpLVUwVkxJRVZrZFdOaGRHbHZiaUJIY205MWNDMD18MXwxMjExNjMxNjc0",
-                        apiUrl: "https://eu1.embed-api.airia.ai",
-                        greeting: "Hello! How can I assist you today?",
-                        imagePath: "https://yoursite.com/assets/chatbot-icon.png",
-                        imageSize: "small",
-                        imageBgColor: "#FFFFFF",
-                        autoOpen: true})
+    <div class="wrap">
+      <div class="card">
+        <div class="hdr">
+          <span>Camilo Assistant (API)</span>
+          <small>Prueba rápida sin widget</small>
+        </div>
+
+        <div class="hint">
+          Si esto te da error de <b>CORS</b> en consola, necesitarás un proxy backend o que Airia permita tu dominio.
+          Endpoint: <code>/v2/PipelineExecution/&lt;PIPELINE_ID&gt;</code>
+        </div>
+
+        <div id="chat" class="chat"></div>
+
+        <div class="inp">
+          <input id="text" placeholder="Escribe tu pregunta..." />
+          <button id="send">Enviar</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // === CONFIG ===
+      const PIPELINE_ID = "4ac209f1-7f8f-4251-b325-bb6c5f206750";
+      const API_KEY     = "ak-MjgzNzA2MjcwM3wxNzcwODAxODUwNTE3fHRpLVUwVkxJRVZrZFdOaGRHbHZiaUJIY205MWNDMD18MXwxMjExNjMxNjc0";
+      const API_URL     = `https://eu1.api.airia.ai/v2/PipelineExecution/${PIPELINE_ID}`;
+
+      const chatEl = document.getElementById("chat");
+      const textEl = document.getElementById("text");
+      const sendEl = document.getElementById("send");
+
+      function addMsg(text, who) {
+        const div = document.createElement("div");
+        div.className = `msg ${who}`;
+        div.textContent = text;
+        chatEl.appendChild(div);
+        chatEl.scrollTop = chatEl.scrollHeight;
+      }
+
+      function extractAnswer(data) {
+        // Intenta varias rutas típicas (robusto a cambios)
+        return (
+          data?.Result?.Value ??
+          data?.result?.value ??
+          data?.result ??
+          data?.Value ??
+          data?.value ??
+          data?.output ??
+          data?.Output ??
+          null
+        );
+      }
+
+      async function sendMessage() {
+        const userInput = (textEl.value || "").trim();
+        if (!userInput) return;
+
+        addMsg(userInput, "user");
+        textEl.value = "";
+        sendEl.disabled = true;
+
+        try {
+          const res = await fetch(API_URL, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-API-KEY": API_KEY,
+            },
+            body: JSON.stringify({
+              userInput,
+              asyncOutput: false
+            }),
+          });
+
+          const contentType = res.headers.get("content-type") || "";
+          let data = null;
+
+          if (contentType.includes("application/json")) {
+            data = await res.json();
+          } else {
+            const txt = await res.text();
+            throw new Error(`Respuesta no JSON (${res.status}): ${txt.slice(0, 300)}`);
+          }
+
+          if (!res.ok) {
+            throw new Error(`HTTP ${res.status}: ${JSON.stringify(data).slice(0, 500)}`);
+          }
+
+          const answer = extractAnswer(data);
+          if (typeof answer === "string" && answer.trim()) {
+            addMsg(answer, "bot");
+          } else {
+            // Si no encontramos el campo, mostramos algo útil para debug
+            addMsg("No pude extraer el texto de respuesta. Te dejo el JSON (recortado):\n\n" + JSON.stringify(data, null, 2).slice(0, 1500), "bot");
+          }
+        } catch (e) {
+          addMsg("Error llamando a la API:\n" + (e?.message || String(e)), "bot");
+        } finally {
+          sendEl.disabled = false;
+          textEl.focus();
+        }
+      }
+
+      // Mensaje inicial
+      addMsg("¡Hola! Soy Camilo Assistant UCJC. ¿En qué te puedo ayudar?", "bot");
+
+      sendEl.addEventListener("click", sendMessage);
+      textEl.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") sendMessage();
+      });
     </script>
   </body>
 </html>
