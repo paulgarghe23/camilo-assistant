@@ -48,7 +48,7 @@
     <script>
       // === CONFIG ===
       const PIPELINE_ID = "4ac209f1-7f8f-4251-b325-bb6c5f206750";
-      const API_KEY     = "ak-MjgzNzA2MjcwM3wxNzcwODAxODUwNTE3fHRpLVUwVkxJRVZrZFdOaGRHbHZiaUJIY205MWNDMD18MXwxMjExNjMxNjc0";
+      const API_URL = "https://airia-proxy.paulgarghe23.workers.dev";
       const API_URL     = `https://eu1.api.airia.ai/v2/PipelineExecution/${PIPELINE_ID}`;
 
       const chatEl = document.getElementById("chat");
@@ -90,7 +90,6 @@
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "X-API-KEY": API_KEY,
             },
             body: JSON.stringify({
               userInput,
