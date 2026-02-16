@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Camilo Assistant · UCJC</title>
 
+<!-- Markdown -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<!-- Sanitizador -->
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+
 <style>
 :root{
   --ucjc-burgundy:#7A0019;
@@ -72,6 +77,16 @@ body{
   align-self:flex-start;
 }
 
+.message a{
+  color:var(--ucjc-gold);
+  text-decoration:none;
+  font-weight:600;
+}
+
+.message a:hover{
+  text-decoration:underline;
+}
+
 .input-area{
   display:flex;
   padding:14px;
@@ -119,7 +134,7 @@ button:hover{
 <script>
 const API_URL = "https://airia-proxy.paulgarghe23.workers.dev/chat";
 
-// ===== USER ID persistente por navegador =====
+// ===== USER ID persistente =====
 let userId = localStorage.getItem("ucjcUserId");
 if(!userId){
   userId = crypto.randomUUID();
@@ -129,30 +144,28 @@ if(!userId){
 const messages = document.getElementById("messages");
 const input = document.getElementById("input");
 
+function renderMarkdown(text){
+  const raw = marked.parse(text);
+  return DOMPurify.sanitize(raw);
+}
+
 function addMessage(text, role){
   const div = document.createElement("div");
   div.className = "message " + role;
-  div.textContent = text;
+  div.innerHTML = renderMarkdown(text);
   messages.appendChild(div);
   messages.scrollTop = messages.scrollHeight;
 }
 
 function extractAnswer(data){
 
-  // Caso 1: string simple
   if(typeof data.result === "string"){
     return data.result;
   }
 
-  // Caso 2: array de steps
   if(Array.isArray(data.result)){
-    const lastWithOutput = data.result
-      .filter(step => step.output)
-      .pop();
-
-    if(lastWithOutput){
-      return lastWithOutput.output;
-    }
+    const last = data.result.filter(s => s.output).pop();
+    if(last) return last.output;
   }
 
   return "No se recibió respuesta válida.";
