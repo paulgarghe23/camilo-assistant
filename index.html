@@ -1,13 +1,12 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Camilo Assistant · UCJC</title>
 
-<!-- Markdown -->
+<!-- Markdown + Sanitización -->
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-<!-- Sanitizador -->
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
 
 <style>
@@ -17,80 +16,163 @@
   --ucjc-gold:#C9A227;
   --bg:#0E1117;
   --panel:#171B24;
+  --panel-2:#10131b;
   --text:#F5F5F5;
+  --muted:rgba(255,255,255,.72);
+  --stroke:rgba(255,255,255,.10);
+  --shadow:0 25px 60px rgba(0,0,0,.55);
+  --radius:16px;
 }
 
 body{
   margin:0;
-  background:var(--bg);
+  background: radial-gradient(900px 600px at 20% 0%, rgba(122,0,25,.35), transparent 55%),
+              radial-gradient(900px 600px at 90% 10%, rgba(201,162,39,.18), transparent 55%),
+              var(--bg);
   font-family:system-ui,-apple-system,Segoe UI,Roboto;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
   color:var(--text);
+  min-height:100vh;
 }
 
-.chat{
-  width:95%;
-  max-width:900px;
-  height:90vh;
-  background:var(--panel);
-  border-radius:16px;
-  display:flex;
-  flex-direction:column;
-  overflow:hidden;
-  box-shadow:0 25px 60px rgba(0,0,0,.5);
+/* ===== Floating bubble ===== */
+.fab{
+  position:fixed;
+  right:18px;
+  bottom:18px;
+  width:58px;
+  height:58px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.14);
+  background: linear-gradient(135deg, var(--ucjc-burgundy), #8F001E);
+  box-shadow: 0 16px 40px rgba(0,0,0,.45);
+  cursor:pointer;
+  display:grid;
+  place-items:center;
+  z-index:9999;
 }
 
-.header{
-  background:linear-gradient(90deg,var(--ucjc-burgundy),var(--ucjc-burgundy-dark));
-  padding:18px;
-  font-weight:700;
+.fab img{
+  width:38px;
+  height:38px;
+  border-radius:999px;
+  object-fit:cover;
+  border:1px solid rgba(255,255,255,.18);
+  background:rgba(0,0,0,.2);
+}
+.fab .fallback{
+  font-weight:800;
   letter-spacing:.5px;
 }
 
+.chat-shell{
+  position:fixed;
+  right:18px;
+  bottom:88px;
+  width:min(420px, calc(100vw - 36px));
+  height:min(620px, calc(100vh - 120px));
+  background: linear-gradient(180deg, rgba(23,27,36,.96), rgba(16,19,27,.96));
+  border:1px solid var(--stroke);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow:hidden;
+  display:none;
+  flex-direction:column;
+  z-index:9999;
+  backdrop-filter: blur(10px);
+}
+
+.chat-shell.open{
+  display:flex;
+}
+
+/* Header */
+.header{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:14px 14px;
+  background: linear-gradient(90deg, var(--ucjc-burgundy), var(--ucjc-burgundy-dark));
+  font-weight:750;
+  letter-spacing:.3px;
+}
+
+.header .logo{
+  width:34px;
+  height:34px;
+  border-radius:10px;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.18);
+  background: rgba(0,0,0,.2);
+  flex:0 0 auto;
+}
+.header .logo img{ width:100%; height:100%; object-fit:cover; }
+
+.header .title{
+  display:flex;
+  flex-direction:column;
+  line-height:1.05;
+}
+.header .title span:first-child{ font-size:14px; }
+.header .title span:last-child{ font-size:12px; color:rgba(255,255,255,.75); font-weight:600; }
+
+.header .close{
+  margin-left:auto;
+  width:34px;
+  height:34px;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,.18);
+  background: rgba(0,0,0,.18);
+  color:rgba(255,255,255,.9);
+  cursor:pointer;
+}
+.header .close:hover{ filter:brightness(1.05); }
+
+/* Messages */
 .messages{
   flex:1;
-  padding:18px;
+  padding:14px;
   overflow-y:auto;
   display:flex;
   flex-direction:column;
-  gap:12px;
+  gap:10px;
+  background: linear-gradient(180deg, rgba(255,255,255,.02), transparent);
 }
 
 .message{
-  max-width:75%;
-  padding:12px 16px;
+  max-width:82%;
+  padding:10px 12px;
   border-radius:14px;
-  line-height:1.5;
+  line-height:1.45;
   white-space:pre-wrap;
+  border:1px solid rgba(255,255,255,.10);
 }
 
 .user{
-  background:rgba(201,162,39,.15);
+  background:rgba(201,162,39,.14);
   align-self:flex-end;
+  border-color: rgba(201,162,39,.22);
 }
 
 .bot{
-  background:rgba(122,0,25,.35);
+  background:rgba(122,0,25,.28);
   align-self:flex-start;
+  border-color: rgba(122,0,25,.30);
 }
 
 .message a{
   color:var(--ucjc-gold);
   text-decoration:none;
-  font-weight:600;
+  font-weight:700;
 }
+.message a:hover{ text-decoration:underline; }
 
-.message a:hover{
-  text-decoration:underline;
-}
-
+/* Input */
 .input-area{
   display:flex;
-  padding:14px;
+  gap:10px;
+  padding:12px;
   border-top:1px solid rgba(255,255,255,.08);
+  background: rgba(0,0,0,.12);
 }
 
 textarea{
@@ -101,119 +183,205 @@ textarea{
   padding:12px;
   font-size:14px;
   outline:none;
+  background: rgba(255,255,255,.92);
+  color:#111;
+  min-height:44px;
+  max-height:120px;
 }
 
-button{
-  margin-left:10px;
-  padding:12px 20px;
+button.send{
+  padding:12px 18px;
   border:none;
   border-radius:12px;
   background:var(--ucjc-burgundy);
   color:white;
-  font-weight:600;
+  font-weight:700;
   cursor:pointer;
-  transition:.2s;
 }
+button.send:hover{ background:#8F001E; }
+button.send:disabled{ opacity:.6; cursor:not-allowed; }
 
-button:hover{
-  background:#8F001E;
+.hint{
+  padding: 0 12px 12px 12px;
+  font-size:12px;
+  color: var(--muted);
 }
 </style>
 </head>
 <body>
 
-<div class="chat">
-  <div class="header">Camilo Assistant · UCJC</div>
+<!-- Floating bubble -->
+<button class="fab" id="fab" aria-label="Abrir chat">
+  <img id="fabImg" alt="Logo" style="display:none;">
+  <div class="fallback" id="fabFallback">UCJC</div>
+</button>
+
+<!-- Chat window -->
+<div class="chat-shell" id="chatShell" aria-label="Chat">
+  <div class="header">
+    <div class="logo">
+      <img id="headerLogo" alt="Logo" style="display:none;">
+    </div>
+    <div class="title">
+      <span>Camilo Assistant · UCJC</span>
+      <span>Atención al estudiante</span>
+    </div>
+    <button class="close" id="closeBtn" aria-label="Cerrar">✕</button>
+  </div>
+
   <div class="messages" id="messages"></div>
+
   <div class="input-area">
     <textarea id="input" placeholder="Escribe tu pregunta..."></textarea>
-    <button onclick="sendMessage()">Enviar</button>
+    <button class="send" id="sendBtn">Enviar</button>
   </div>
+  <div class="hint">Enter para enviar · Shift+Enter para salto de línea</div>
 </div>
 
 <script>
+/** ===== CONFIG ===== **/
 const API_URL = "https://airia-proxy.paulgarghe23.workers.dev/chat";
 
-// ===== USER ID persistente =====
+/* 2) Logo:
+   - Sube una imagen al repo, por ejemplo: /logo-ucjc.png
+   - Pon aquí la ruta:
+*/
+const LOGO_SRC = "./logo-ucjc.png"; // <- cambia el nombre si quieres
+
+/** ===== userId persistente por navegador (GUID) ===== **/
 let userId = localStorage.getItem("ucjcUserId");
-if(!userId){
+if (!userId) {
   userId = crypto.randomUUID();
   localStorage.setItem("ucjcUserId", userId);
 }
 
+/** ===== UI elements ===== **/
+const chatShell = document.getElementById("chatShell");
+const fab = document.getElementById("fab");
+const closeBtn = document.getElementById("closeBtn");
 const messages = document.getElementById("messages");
 const input = document.getElementById("input");
+const sendBtn = document.getElementById("sendBtn");
 
+const fabImg = document.getElementById("fabImg");
+const fabFallback = document.getElementById("fabFallback");
+const headerLogo = document.getElementById("headerLogo");
+
+/** ===== Markdown rendering + open links in new tab ===== **/
 function renderMarkdown(text){
   const raw = marked.parse(text);
-  return DOMPurify.sanitize(raw);
+  const safe = DOMPurify.sanitize(raw);
+  return safe;
 }
 
+function forceLinksNewTab(container){
+  container.querySelectorAll("a").forEach(a => {
+    a.setAttribute("target","_blank");
+    a.setAttribute("rel","noopener noreferrer");
+  });
+}
+
+/** ===== Messages ===== **/
 function addMessage(text, role){
   const div = document.createElement("div");
   div.className = "message " + role;
   div.innerHTML = renderMarkdown(text);
   messages.appendChild(div);
+  forceLinksNewTab(div);
   messages.scrollTop = messages.scrollHeight;
 }
 
 function extractAnswer(data){
+  // Caso A: string
+  if (typeof data?.result === "string") return data.result;
 
-  if(typeof data.result === "string"){
-    return data.result;
+  // Caso B: array de steps con output
+  if (Array.isArray(data?.result)) {
+    const last = data.result.filter(s => s && typeof s.output === "string" && s.output.trim()).pop();
+    if (last) return last.output;
   }
 
-  if(Array.isArray(data.result)){
-    const last = data.result.filter(s => s.output).pop();
-    if(last) return last.output;
-  }
-
-  return "No se recibió respuesta válida.";
+  // Fallback: si viene otra estructura
+  try { return JSON.stringify(data, null, 2); } catch { return "No se recibió respuesta válida."; }
 }
 
+/** ===== Send ===== **/
 async function sendMessage(){
   const text = input.value.trim();
   if(!text) return;
 
-  addMessage(text,"user");
-  input.value="";
+  addMessage(text, "user");
+  input.value = "";
+  sendBtn.disabled = true;
 
   try{
-    const res = await fetch(API_URL,{
+    const res = await fetch(API_URL, {
       method:"POST",
       headers:{ "Content-Type":"application/json" },
       body: JSON.stringify({
-        userInput:text,
-        asyncOutput:false,
-        userId:userId
+        userInput: text,
+        asyncOutput: false,
+        userId: userId
       })
     });
 
     const data = await res.json();
 
     if(!res.ok){
-      addMessage("Error de conexión con el servidor.","bot");
-      console.error(data);
+      addMessage("Error de conexión con el servidor.", "bot");
+      console.error("API error:", data);
       return;
     }
 
-    const answer = extractAnswer(data);
-    addMessage(answer,"bot");
-
-  }catch(err){
-    addMessage("Error de red.","bot");
+    addMessage(extractAnswer(data), "bot");
+  } catch (err) {
+    addMessage("Error de red.", "bot");
     console.error(err);
+  } finally {
+    sendBtn.disabled = false;
   }
 }
 
-input.addEventListener("keydown",e=>{
-  if(e.key==="Enter" && !e.shiftKey){
+/** ===== Bubble open/close ===== **/
+function openChat(){
+  chatShell.classList.add("open");
+  setTimeout(() => input.focus(), 50);
+}
+function closeChat(){
+  chatShell.classList.remove("open");
+}
+fab.addEventListener("click", () => {
+  chatShell.classList.contains("open") ? closeChat() : openChat();
+});
+closeBtn.addEventListener("click", closeChat);
+
+/** ===== Enter to send ===== **/
+input.addEventListener("keydown", (e) => {
+  if(e.key === "Enter" && !e.shiftKey){
     e.preventDefault();
     sendMessage();
   }
 });
+sendBtn.addEventListener("click", sendMessage);
 
-addMessage("¡Hola! 😊 Soy Camilo Assistant. ¿En qué puedo ayudarte?","bot");
+/** ===== Load logo if exists ===== **/
+(function loadLogo(){
+  const img = new Image();
+  img.onload = () => {
+    fabImg.src = LOGO_SRC;
+    headerLogo.src = LOGO_SRC;
+    fabImg.style.display = "block";
+    headerLogo.style.display = "block";
+    fabFallback.style.display = "none";
+  };
+  img.onerror = () => {
+    // si no existe logo, dejamos fallback UCJC
+  };
+  img.src = LOGO_SRC;
+})();
+
+/** ===== Initial message ===== **/
+addMessage("¡Hola! 😊 Soy Camilo Assistant. ¿En qué puedo ayudarte?", "bot");
 </script>
 
 </body>
