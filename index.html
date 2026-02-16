@@ -3,59 +3,62 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Camilo Assistant UCJC</title>
+<title>Camilo Assistant · UCJC</title>
 
 <style>
 :root{
-  --ucjc-burgundy:#7a0019;
-  --ucjc-gold:#c9a227;
-  --bg:#0f1117;
-  --panel:#1a1d26;
-  --text:#f5f5f5;
+  --ucjc-burgundy:#7A0019;
+  --ucjc-burgundy-dark:#5C0013;
+  --ucjc-gold:#C9A227;
+  --bg:#0E1117;
+  --panel:#171B24;
+  --text:#F5F5F5;
 }
 
 body{
   margin:0;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-  background: var(--bg);
-  color: var(--text);
+  background:var(--bg);
+  font-family:system-ui,-apple-system,Segoe UI,Roboto;
   display:flex;
   justify-content:center;
   align-items:center;
   height:100vh;
+  color:var(--text);
 }
 
-.chat-container{
-  width: 95%;
-  max-width: 900px;
-  height: 90vh;
-  background: var(--panel);
+.chat{
+  width:95%;
+  max-width:900px;
+  height:90vh;
+  background:var(--panel);
   border-radius:16px;
   display:flex;
   flex-direction:column;
-  box-shadow:0 20px 60px rgba(0,0,0,0.5);
   overflow:hidden;
+  box-shadow:0 25px 60px rgba(0,0,0,.5);
 }
 
 .header{
-  background: linear-gradient(90deg,var(--ucjc-burgundy),#5c0013);
-  padding:16px;
+  background:linear-gradient(90deg,var(--ucjc-burgundy),var(--ucjc-burgundy-dark));
+  padding:18px;
   font-weight:700;
   letter-spacing:.5px;
 }
 
 .messages{
   flex:1;
-  padding:16px;
+  padding:18px;
   overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
 }
 
 .message{
-  margin-bottom:12px;
   max-width:75%;
-  padding:10px 14px;
+  padding:12px 16px;
   border-radius:14px;
-  line-height:1.4;
+  line-height:1.5;
   white-space:pre-wrap;
 }
 
@@ -65,44 +68,46 @@ body{
 }
 
 .bot{
-  background:rgba(122,0,25,.25);
+  background:rgba(122,0,25,.35);
   align-self:flex-start;
 }
 
 .input-area{
   display:flex;
-  padding:12px;
+  padding:14px;
   border-top:1px solid rgba(255,255,255,.08);
 }
 
 textarea{
   flex:1;
   resize:none;
-  border-radius:10px;
   border:none;
-  padding:10px;
+  border-radius:12px;
+  padding:12px;
   font-size:14px;
+  outline:none;
 }
 
 button{
-  margin-left:8px;
-  padding:10px 18px;
+  margin-left:10px;
+  padding:12px 20px;
   border:none;
-  border-radius:10px;
-  font-weight:600;
+  border-radius:12px;
   background:var(--ucjc-burgundy);
   color:white;
+  font-weight:600;
   cursor:pointer;
+  transition:.2s;
 }
 
 button:hover{
-  background:#8f001e;
+  background:#8F001E;
 }
 </style>
 </head>
 <body>
 
-<div class="chat-container">
+<div class="chat">
   <div class="header">Camilo Assistant · UCJC</div>
   <div class="messages" id="messages"></div>
   <div class="input-area">
@@ -114,32 +119,51 @@ button:hover{
 <script>
 const API_URL = "https://airia-proxy.paulgarghe23.workers.dev/chat";
 
-// ====== USER ID PERSISTENTE POR NAVEGADOR ======
+// ===== USER ID persistente por navegador =====
 let userId = localStorage.getItem("ucjcUserId");
-if (!userId) {
+if(!userId){
   userId = crypto.randomUUID();
   localStorage.setItem("ucjcUserId", userId);
 }
 
-// ====== UI ======
-const messagesEl = document.getElementById("messages");
-const inputEl = document.getElementById("input");
+const messages = document.getElementById("messages");
+const input = document.getElementById("input");
 
 function addMessage(text, role){
   const div = document.createElement("div");
   div.className = "message " + role;
   div.textContent = text;
-  messagesEl.appendChild(div);
-  messagesEl.scrollTop = messagesEl.scrollHeight;
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
 }
 
-// ====== SEND ======
+function extractAnswer(data){
+
+  // Caso 1: string simple
+  if(typeof data.result === "string"){
+    return data.result;
+  }
+
+  // Caso 2: array de steps
+  if(Array.isArray(data.result)){
+    const lastWithOutput = data.result
+      .filter(step => step.output)
+      .pop();
+
+    if(lastWithOutput){
+      return lastWithOutput.output;
+    }
+  }
+
+  return "No se recibió respuesta válida.";
+}
+
 async function sendMessage(){
-  const text = inputEl.value.trim();
+  const text = input.value.trim();
   if(!text) return;
 
   addMessage(text,"user");
-  inputEl.value="";
+  input.value="";
 
   try{
     const res = await fetch(API_URL,{
@@ -160,12 +184,7 @@ async function sendMessage(){
       return;
     }
 
-    // Airia devuelve: { result: "texto" }
-    let answer = data.result;
-
-    if (typeof answer !== "string") {
-      answer = JSON.stringify(answer, null, 2);
-    }
+    const answer = extractAnswer(data);
     addMessage(answer,"bot");
 
   }catch(err){
@@ -174,15 +193,13 @@ async function sendMessage(){
   }
 }
 
-// Enter para enviar
-inputEl.addEventListener("keydown", e=>{
+input.addEventListener("keydown",e=>{
   if(e.key==="Enter" && !e.shiftKey){
     e.preventDefault();
     sendMessage();
   }
 });
 
-// Mensaje inicial
 addMessage("¡Hola! 😊 Soy Camilo Assistant. ¿En qué puedo ayudarte?","bot");
 </script>
 
