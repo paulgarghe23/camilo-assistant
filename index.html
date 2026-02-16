@@ -1,22 +1,186 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Airia Embed</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module">
-        import AiriaChat from "https://eu1.embed-api.airia.ai/get-chat-embed.js"
-        AiriaChat.init({pipelineId: "4ac209f1-7f8f-4251-b325-bb6c5f206750",
-                        apiKey: "ak-Mjg2MjAwODQ2NHwxNzcwOTExNTM1MTg1fHRpLVUwVkxJRVZrZFdOaGRHbHZiaUJIY205MWNDMD18MXwyMzEzMDAwMTAw",
-                        apiUrl: "https://eu1.embed-api.airia.ai",
-                        greeting: "Hello! How can I assist you today?",
-                        imagePath: "https://yoursite.com/assets/chatbot-icon.png",
-                        imageSize: "small",
-                        imageBgColor: "#FFFFFF",
-                        autoOpen: true})
-    </script>
-  </body>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Camilo Assistant UCJC</title>
+
+<style>
+:root{
+  --ucjc-burgundy:#7a0019;
+  --ucjc-gold:#c9a227;
+  --bg:#0f1117;
+  --panel:#1a1d26;
+  --text:#f5f5f5;
+}
+
+body{
+  margin:0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
+
+.chat-container{
+  width: 95%;
+  max-width: 900px;
+  height: 90vh;
+  background: var(--panel);
+  border-radius:16px;
+  display:flex;
+  flex-direction:column;
+  box-shadow:0 20px 60px rgba(0,0,0,0.5);
+  overflow:hidden;
+}
+
+.header{
+  background: linear-gradient(90deg,var(--ucjc-burgundy),#5c0013);
+  padding:16px;
+  font-weight:700;
+  letter-spacing:.5px;
+}
+
+.messages{
+  flex:1;
+  padding:16px;
+  overflow-y:auto;
+}
+
+.message{
+  margin-bottom:12px;
+  max-width:75%;
+  padding:10px 14px;
+  border-radius:14px;
+  line-height:1.4;
+  white-space:pre-wrap;
+}
+
+.user{
+  background:rgba(201,162,39,.15);
+  align-self:flex-end;
+}
+
+.bot{
+  background:rgba(122,0,25,.25);
+  align-self:flex-start;
+}
+
+.input-area{
+  display:flex;
+  padding:12px;
+  border-top:1px solid rgba(255,255,255,.08);
+}
+
+textarea{
+  flex:1;
+  resize:none;
+  border-radius:10px;
+  border:none;
+  padding:10px;
+  font-size:14px;
+}
+
+button{
+  margin-left:8px;
+  padding:10px 18px;
+  border:none;
+  border-radius:10px;
+  font-weight:600;
+  background:var(--ucjc-burgundy);
+  color:white;
+  cursor:pointer;
+}
+
+button:hover{
+  background:#8f001e;
+}
+</style>
+</head>
+<body>
+
+<div class="chat-container">
+  <div class="header">Camilo Assistant · UCJC</div>
+  <div class="messages" id="messages"></div>
+  <div class="input-area">
+    <textarea id="input" placeholder="Escribe tu pregunta..."></textarea>
+    <button onclick="sendMessage()">Enviar</button>
+  </div>
+</div>
+
+<script>
+const API_URL = "https://airia-proxy.paulgarghe23.workers.dev/chat";
+
+// ====== USER ID PERSISTENTE POR NAVEGADOR ======
+let userId = localStorage.getItem("ucjcUserId");
+if (!userId) {
+  userId = crypto.randomUUID();
+  localStorage.setItem("ucjcUserId", userId);
+}
+
+// ====== UI ======
+const messagesEl = document.getElementById("messages");
+const inputEl = document.getElementById("input");
+
+function addMessage(text, role){
+  const div = document.createElement("div");
+  div.className = "message " + role;
+  div.textContent = text;
+  messagesEl.appendChild(div);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+// ====== SEND ======
+async function sendMessage(){
+  const text = inputEl.value.trim();
+  if(!text) return;
+
+  addMessage(text,"user");
+  inputEl.value="";
+
+  try{
+    const res = await fetch(API_URL,{
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({
+        userInput:text,
+        asyncOutput:false,
+        userId:userId
+      })
+    });
+
+    const data = await res.json();
+
+    if(!res.ok){
+      addMessage("Error de conexión con el servidor.","bot");
+      console.error(data);
+      return;
+    }
+
+    // Airia devuelve: { result: "texto" }
+    const answer = data.result || "No se recibió respuesta.";
+    addMessage(answer,"bot");
+
+  }catch(err){
+    addMessage("Error de red.","bot");
+    console.error(err);
+  }
+}
+
+// Enter para enviar
+inputEl.addEventListener("keydown", e=>{
+  if(e.key==="Enter" && !e.shiftKey){
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+// Mensaje inicial
+addMessage("¡Hola! 😊 Soy Camilo Assistant. ¿En qué puedo ayudarte?","bot");
+</script>
+
+</body>
 </html>
