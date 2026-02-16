@@ -53,14 +53,16 @@ body{
   z-index:9999;
 }
 
+/* ✅ Mejor para PNG grande: no recorta, icono redondeado */
 .fab img{
-  width:38px;
-  height:38px;
-  border-radius:999px;
-  object-fit:cover;
-  border:1px solid rgba(255,255,255,.18);
-  background:rgba(0,0,0,.2);
+  width:40px;
+  height:40px;
+  border-radius:10px;
+  object-fit:contain;
+  border:none;
+  background:transparent;
 }
+
 .fab .fallback{
   font-weight:800;
   letter-spacing:.5px;
@@ -107,7 +109,9 @@ body{
   background: rgba(0,0,0,.2);
   flex:0 0 auto;
 }
-.header .logo img{ width:100%; height:100%; object-fit:cover; }
+
+/* ✅ Si el logo es grande: contain evita recortes */
+.header .logo img{ width:100%; height:100%; object-fit:contain; }
 
 .header .title{
   display:flex;
@@ -241,23 +245,17 @@ button.send:disabled{ opacity:.6; cursor:not-allowed; }
 </div>
 
 <script>
-/** ===== CONFIG ===== **/
 const API_URL = "https://airia-proxy.paulgarghe23.workers.dev/chat";
+const LOGO_SRC = "./logo-ucjc.png";
 
-/* 2) Logo:
-   - Sube una imagen al repo, por ejemplo: /logo-ucjc.png
-   - Pon aquí la ruta:
-*/
-const LOGO_SRC = "./logo-ucjc.png"; // <- cambia el nombre si quieres
-
-/** ===== userId persistente por navegador (GUID) ===== **/
+/** userId persistente por navegador (GUID) **/
 let userId = localStorage.getItem("ucjcUserId");
 if (!userId) {
   userId = crypto.randomUUID();
   localStorage.setItem("ucjcUserId", userId);
 }
 
-/** ===== UI elements ===== **/
+/** UI elements **/
 const chatShell = document.getElementById("chatShell");
 const fab = document.getElementById("fab");
 const closeBtn = document.getElementById("closeBtn");
@@ -269,13 +267,11 @@ const fabImg = document.getElementById("fabImg");
 const fabFallback = document.getElementById("fabFallback");
 const headerLogo = document.getElementById("headerLogo");
 
-/** ===== Markdown rendering + open links in new tab ===== **/
+/** Markdown + links nueva pestaña **/
 function renderMarkdown(text){
   const raw = marked.parse(text);
-  const safe = DOMPurify.sanitize(raw);
-  return safe;
+  return DOMPurify.sanitize(raw);
 }
-
 function forceLinksNewTab(container){
   container.querySelectorAll("a").forEach(a => {
     a.setAttribute("target","_blank");
@@ -283,7 +279,7 @@ function forceLinksNewTab(container){
   });
 }
 
-/** ===== Messages ===== **/
+/** Messages **/
 function addMessage(text, role){
   const div = document.createElement("div");
   div.className = "message " + role;
@@ -294,20 +290,20 @@ function addMessage(text, role){
 }
 
 function extractAnswer(data){
-  // Caso A: string
   if (typeof data?.result === "string") return data.result;
 
-  // Caso B: array de steps con output
   if (Array.isArray(data?.result)) {
-    const last = data.result.filter(s => s && typeof s.output === "string" && s.output.trim()).pop();
+    const last = data.result
+      .filter(s => s && typeof s.output === "string" && s.output.trim())
+      .pop();
     if (last) return last.output;
   }
 
-  // Fallback: si viene otra estructura
-  try { return JSON.stringify(data, null, 2); } catch { return "No se recibió respuesta válida."; }
+  try { return JSON.stringify(data, null, 2); }
+  catch { return "No se recibió respuesta válida."; }
 }
 
-/** ===== Send ===== **/
+/** Send **/
 async function sendMessage(){
   const text = input.value.trim();
   if(!text) return;
@@ -344,7 +340,7 @@ async function sendMessage(){
   }
 }
 
-/** ===== Bubble open/close ===== **/
+/** Bubble open/close **/
 function openChat(){
   chatShell.classList.add("open");
   setTimeout(() => input.focus(), 50);
@@ -357,7 +353,7 @@ fab.addEventListener("click", () => {
 });
 closeBtn.addEventListener("click", closeChat);
 
-/** ===== Enter to send ===== **/
+/** Enter para enviar **/
 input.addEventListener("keydown", (e) => {
   if(e.key === "Enter" && !e.shiftKey){
     e.preventDefault();
@@ -366,23 +362,21 @@ input.addEventListener("keydown", (e) => {
 });
 sendBtn.addEventListener("click", sendMessage);
 
-/** ===== Load logo if exists ===== **/
+/** ✅ Load logo ONCE (1 request) **/
 (function loadLogo(){
-  const img = new Image();
-  img.onload = () => {
-    fabImg.src = LOGO_SRC;
-    headerLogo.src = LOGO_SRC;
-    fabImg.style.display = "block";
+  headerLogo.onload = () => {
+    fabImg.src = headerLogo.src;          // reutiliza
     headerLogo.style.display = "block";
+    fabImg.style.display = "block";
     fabFallback.style.display = "none";
   };
-  img.onerror = () => {
-    // si no existe logo, dejamos fallback UCJC
+  headerLogo.onerror = () => {
+    // si no existe, dejamos fallback UCJC
   };
-  img.src = LOGO_SRC;
+  headerLogo.src = LOGO_SRC;
 })();
 
-/** ===== Initial message ===== **/
+/** Initial message **/
 addMessage("¡Hola! 😊 Soy Camilo Assistant. ¿En qué puedo ayudarte?", "bot");
 </script>
 
