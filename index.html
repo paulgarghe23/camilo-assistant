@@ -41,8 +41,8 @@ body{
   position:fixed;
   right:18px;
   bottom:18px;
-  width:58px;
-  height:58px;
+  width:64px;
+  height:64px;
   border-radius:999px;
   border:1px solid rgba(255,255,255,.14);
   background: linear-gradient(135deg, var(--ucjc-burgundy), #8F001E);
@@ -55,12 +55,13 @@ body{
 
 /* ✅ Mejor para PNG grande: no recorta, icono redondeado */
 .fab img{
-  width:40px;
-  height:40px;
-  border-radius:10px;
+  width:48px;
+  height:48px;
+  border-radius:999px;   /* circular otra vez */
   object-fit:contain;
+  background:#fff;       /* fondo blanco */
+  padding:4px;           /* aire para que no pegue */
   border:none;
-  background:transparent;
 }
 
 .fab .fallback{
