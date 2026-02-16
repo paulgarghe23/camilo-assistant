@@ -161,7 +161,11 @@ async function sendMessage(){
     }
 
     // Airia devuelve: { result: "texto" }
-    const answer = data.result || "No se recibió respuesta.";
+    let answer = data.result;
+
+    if (typeof answer !== "string") {
+      answer = JSON.stringify(answer, null, 2);
+    }
     addMessage(answer,"bot");
 
   }catch(err){
